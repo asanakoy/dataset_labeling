@@ -11,21 +11,24 @@ negatives_per_seq = 10;
 %#ok<*NODEF>
 % image_names = image_names(:,3:end);
 image_names = cellfun(@(z) z(3:end), image_names, 'UniformOutput', false);
+N_FRAMES_TO_CHECK_FROM_ONE_SIDE = 300;
+
+MAX_N_POSITIVES = 10;
+MAX_N_NEGATIVES = 10;
 
 for nframe = 1:50
     
     anchor_seq = seq_names{randperm(length(seq_names),1)}; %#ok<*USENS>
-    anchor = randperm(size(image_names,1),1);
     anchor_seq_images_indices = find(cellfun(@(z) strncmpi(z, anchor_seq, length(anchor_seq)), image_names));
     h = figure();
     idx = 1;
-    while idx < length(anchor_seq_images_indices) 
-        labels(nframe).anchor = anchor;
-        anchor_name = fullfile(path_images, image_names{anchor_seq_images_indices(idx)});
+    while idx < length(anchor_seq_images_indices)
+        labels(nframe).anchor = anchor_seq_images_indices(idx);
+        anchor_name = fullfile(path_images, image_names{labels(nframe).anchor});
         figure(h);
         subplot(1,2,1);imshow(anchor_name); title('Anchor frame');
-
-       anc = input('Is this a good anchor?','s');
+        
+        anc = input('Is this a good anchor?','s');
         if strcmp(anc,'k')
             break;
         else
@@ -36,80 +39,214 @@ for nframe = 1:50
     disp('Anchor selected');
     
     
-    labels(nframe).positives = [];
-    labels(nframe).negatives = [];
-    positives = [];
-    negatives = [];
+    labels(nframe).positives.ids = [];
+    labels(nframe).negatives.ids = [];
+    labels(nframe).positives.flipval = [];
+    labels(nframe).negatives.flipval = [];
+    is_used = zeros(length(image_names), 1);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    for seq_id = randperm(length(seq_names), 10)
-        curr_seq_name = seq_names{seq_id};
-        if ~strcmp(curr_seq_name, anchor_seq)
-            images_seq_indices = find(cellfun(@(z) strncmpi(z, curr_seq_name, ...
-                                                            length(curr_seq_name)), image_names));
-                                                        
-            count = 1;
-            while count < length(images_seq_indices)
-                
-                image_name = fullfile(path_images, image_names{images_seq_indices(count)});
-                subplot(1,2,2); imshow(image_name); title(sprintf('Frame %d of %d', count, length(images_seq_indices)));
-                
-                figure(h);
-                %positives
-                %negatives
-                fprintf('Press p for positive, n for negative.\nPress q or w to move 5 frames backward or forward (respectively).\nPress a or s to move one frame backward or forward (respectively).');
-                
-                
-                w = 0; % mouse button pressed
-                while w == 0
-                    w = waitforbuttonpress;
-                end
+    
+    anchor_sim = simMatrix(labels(nframe).anchor, :);
+    anchor_flipval = flipval(labels(nframe).anchor, :);
+    [~, permutation] = sort(anchor_sim, 'descend');
+    
+    perm_from_other_sequences = [];
+    for i = 1:length(permutation)
+        if ~strcmp(anchor_seq, getSeqName(image_names{permutation(i)}))
+            perm_from_other_sequences(end + 1) = permutation(i);
+        end
+    end
+    permutation = perm_from_other_sequences;
+    
+    n = min(N_FRAMES_TO_CHECK_FROM_ONE_SIDE, length(perm_from_other_sequences));
+    
+    abort_flag = 1;
+    [labels(nframe).positives, labels(nframe).negatives, is_used] = ...
+        iterateFrames(permutation(1:n), ...
+        labels(nframe).positives, labels(nframe).negatives, ...
+        is_used, image_names, path_images, ...
+        anchor_sim, anchor_flipval, ...
+        anchor_seq, MAX_N_POSITIVES, MAX_N_NEGATIVES, abort_flag, h);
+    
+    if (length(labels(nframe).positives.ids) < MAX_N_POSITIVES ||...
+            length(labels(nframe).negatives.ids) < MAX_N_NEGATIVES)
+        lb = min(length(permutation), max(n+1, length(permutation) - N_FRAMES_TO_CHECK_FROM_ONE_SIDE + 1));
+        
+        abort_flag = 0;
+        [positives, negatives, is_used] = ...
+            iterateFrames(permutation(end:-1:lb), ...
+            labels(nframe).positives, labels(nframe).negatives, ...
+            is_used, image_names, path_images, ...
+            anchor_sim, anchor_flipval, anchor_seq, ...
+            MAX_N_POSITIVES, MAX_N_NEGATIVES, abort_flag, h);
+        
+        labels(nframe).positives.ids = [labels(nframe).positives.ids positives.ids];
+        labels(nframe).negatives.ids = [labels(nframe).negatives.ids negatives.ids];
+        
+        labels(nframe).positives.flipval = [labels(nframe).positives.flipval positives.flipval];
+        labels(nframe).negatives.flipval = [labels(nframe).negatives.flipval negatives.flipval];
+    end
+    disp('Iteration is over.');
+    
+    save(['/net/hciserver03/storage/asanakoy/workspace/dataset_labeling/data/labels_',category,'.mat'], 'labels');
+    
+end
 
-                pressed_key = h.CurrentCharacter;
-                fprintf('\nKey %s pressed\n', pressed_key);
-                
-                if strcmp(pressed_key,'p')
-                    positives = [positives images_seq_indices(count)];
-                    count = count + 5;
-                elseif strcmp(pressed_key,'n')
-                    
-                    if length(negatives) < 10
-                        negatives = [negatives images_seq_indices(count)];
-                    else
-                        disp(['You already labelled ',num2str(negatives_per_seq),' negatives, which is the maximum.'])
-                    end
-                    count = count + 3;
-                    
-                elseif strcmp(pressed_key,'w')
-                    
-                        count = count + 5;
-                
-                elseif strcmp(pressed_key,'q')
-                    
-                    if count > 5
-                        count = count - 5;
-                    end
-                    
-                elseif strcmp(pressed_key,'s')
+end
 
-                        count = count + 1;
+%%
+function [positives, negatives, is_used] = iterateFrames(permutation, ...
+    positives, negatives, is_used, ...
+    image_names, path_images, anchor_sim, ...
+    anchor_flipval, ...
+    anchor_seq, max_positives_count, ...
+    max_negatives_count, abort_flag, h_figure)
 
-                elseif strcmp(pressed_key,'a')
-                    
-                    if count > 1
-                        count = count - 1;
-                    end
-                    
-                end
-                
-            end
-            disp('End of current sequence.');
+WINDOW_SIZE = 3;
+
+main_frameId = permutation(1);
+frameId = main_frameId;
+i = 1;
+direction = 1;
+n = length(permutation);
+
+fprintf('Press p for positive, n for negative.\nPress q or w to move 5 frames backward or forward (respectively).\n')
+fprintf('a or s to move 1 frame backward or forward (respectively).\n');
+fprintf('j or k to move 1 frame backward or forward inside the sequence (respectively).\n');
+while i <= n
+    
+    sim = anchor_sim(frameId);
+    
+    curr_seq_name = getSeqName(image_names{main_frameId});
+    assert(strcmp(curr_seq_name, getSeqName(image_names{frameId})));
+    
+    if strcmp(curr_seq_name, anchor_seq) || is_used(main_frameId)
+        i = i + direction;
+        main_frameId = permutation(i);
+        frameId = main_frameId;
+        continue
+    end
+    
+    image_path = fullfile(path_images, image_names{frameId});
+    img = imread(image_path);
+    flipval = anchor_flipval(frameId);
+    if (flipval)
+        img = fliplr(img);
+    end
+    subplot(1,2,2); imshow(img); title(sprintf('Frame %d of %d; Sim: %.3f', i, n, sim));
+    figure(h_figure);
+    
+    w = 0; % mouse button pressed
+    while w == 0
+        w = waitforbuttonpress;
+    end
+    
+    pressed_key = h_figure.CurrentCharacter;
+    
+    if strcmp(pressed_key,'p')
+        
+        if length(positives.ids) < max_positives_count
+            positives.ids = [positives.ids frameId];
+            positives.flipval = [positives.flipval flipval];
+            is_used = markWindowAsUsed(is_used, main_frameId, WINDOW_SIZE, image_names);
+            
+            [direction, i, main_frameId, frameId] = move(i, 1, direction, main_frameId, frameId, permutation);
+            fprintf('Positive marked\n');
+        else
+            fprintf('You have reached the maximum number of positives (%d)!\n', max_positives_count);
         end
         
-        labels(nframe).positives = [labels(nframe).positives positives];
-        labels(nframe).negatives = [labels(nframe).negatives negatives];
-        save(['labels_',category,'.mat'],'labels');
+    elseif strcmp(pressed_key,'n')
         
+        if length(negatives.ids) < max_negatives_count
+            negatives.ids = [negatives.ids frameId];
+            negatives.flipval = [negatives.flipval flipval];
+            
+            is_used = markWindowAsUsed(is_used, main_frameId, WINDOW_SIZE, image_names);
+            
+            [direction, i, main_frameId, frameId] = move(i, 1, direction, main_frameId, frameId, permutation);
+            fprintf('Negative marked\n');
+        else
+            fprintf('You have reached the maximum number of negatives (%d)!\n', max_negatives_count);
+        end
+        
+    elseif strcmp(pressed_key,'w')
+        
+        [direction, i, main_frameId, frameId] = move(i, 5, direction, main_frameId, frameId, permutation);
+        
+    elseif strcmp(pressed_key,'q')
+        
+        [direction, i, main_frameId, frameId] = move(i, -5, direction, main_frameId, frameId, permutation);
+        
+    elseif strcmp(pressed_key,'s')
+        
+        [direction, i, main_frameId, frameId] = move(i, 1, direction, main_frameId, frameId, permutation);
+        
+    elseif strcmp(pressed_key,'a')
+        
+        [direction, i, main_frameId, frameId] = move(i, -1, direction, main_frameId, frameId, permutation);
+        
+    elseif strcmp(pressed_key,'j')
+        
+        if ( (main_frameId - frameId) < WINDOW_SIZE && ...
+                frameId > 1 && ~is_used(frameId) && ...
+                strcmp(getSeqName(image_names{frameId-1}), curr_seq_name) == 1)
+            
+            frameId = frameId - 1;
+        end
+        
+    elseif strcmp(pressed_key,'k')
+        
+        if ( (frameId - main_frameId) < WINDOW_SIZE && ...
+                frameId < length(image_names) && ~is_used(frameId) &&...
+                strcmp(getSeqName(image_names{frameId+1}), curr_seq_name) == 1)
+            
+            frameId = frameId + 1;
+        end
+        
+    elseif strcmp(pressed_key,'f')
+        
+        anchor_flipval(frameId) = ~anchor_flipval(frameId);
+        fprintf('Image flipped\n');
+        
+    end
+    
+
+    if (abort_flag == 1 && length(positives.ids) == max_positives_count) || ...
+            (abort_flag == -1 && length(negatives.ids) == max_negatives_count) || ...
+            (length(positives.ids) == max_positives_count && length(negatives.ids) == max_negatives_count)
+        
+        break;
     end
     
 end
 
+end
+
+
+%% Utility functions
+
+function [seq_name] = getSeqName(image_name)
+pos = regexp(image_name, '/I.*\.png');
+seq_name = image_name(1:pos-1);
+end
+
+function [is_used] = markWindowAsUsed(is_used, main_frameId, WINDOW_SIZE, image_names)
+for j = max(main_frameId - WINDOW_SIZE, 1):min(main_frameId + WINDOW_SIZE, length(image_names))
+    if strcmp(getSeqName(image_names{j}), getSeqName(image_names{main_frameId})) == 1
+        is_used(j) = 1;
+    end
+end
+end
+
+function [direction, i, main_frameId, frameId] = move(i, delta, old_direction, main_frameId, frameId, permutation)
+direction = old_direction;
+if i + delta > 0
+    direction = sign(delta);
+    i = i + delta;
+    main_frameId = permutation(i);
+    frameId = main_frameId;
+    pause(0.01);
+end
+end
