@@ -10,7 +10,7 @@ file_suffix
 path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category,'.mat']
 path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category,'/'];
 
-fprintf('Welcome to the labelling tool application.\nFirst you are going to choose the anchor, please press k if the anchor is suitable and other key otherwise.');
+fprintf('Welcome to the labelling tool application.\nFirst you are going to choose the anchor, please press k if the anchor is suitable and other key otherwise.\n');
 load(path_sim);
 negatives_per_seq = 10;
 
@@ -22,11 +22,16 @@ N_FRAMES_TO_CHECK_FROM_ONE_SIDE = 300;
 MAX_N_POSITIVES = 10;
 MAX_N_NEGATIVES = 10;
 
+close all;
+h = figure();
+
 for nframe = 1:50
     
     anchor_seq = seq_names{randperm(length(seq_names),1)}; %#ok<*USENS>
     anchor_seq_images_indices = find(cellfun(@(z) strncmpi(z, anchor_seq, length(anchor_seq)), image_names));
-    h = figure();
+    
+    subplot(1,2,2); plot(NaN); % to clear right subplot
+    
     idx = 1;
     while 1
         labels(nframe).anchor = anchor_seq_images_indices(idx);
@@ -34,13 +39,14 @@ for nframe = 1:50
         figure(h);
         subplot(1,2,1);imshow(anchor_name); title('Anchor frame');
         
-        anc = input('Is this a good anchor?','s');
+        fprintf('Press "enter" to go to the next frame OR\n print "q" or "w" and press "enter" to move 10 frames backward or forward (respectively).\n')
+        anc = input('Is this a good anchor? (print "k" is yes):','s');
         if strcmp(anc,'k')
             break;
         elseif strcmp(anc,'q')
-            idx = max(1, idx-5);
+            idx = max(1, idx-10);
         elseif strcmp(anc,'w')
-            idx = min(length(anchor_seq_images_indices), idx+5);
+            idx = min(length(anchor_seq_images_indices), idx+10);
         else
             idx = min(length(anchor_seq_images_indices), idx+1);
         end
@@ -94,7 +100,7 @@ for nframe = 1:50
     end
     disp('Iteration is over.');
     
-    save(['/net/hciserver03/storage/asanakoy/workspace/dataset_labeling/data/labels_',category, file_suffix, '.mat'], 'labels');
+    save(['/net/hciserver03/storage/asanakoy/workspace/dataset_labeling/data/labels_',category, file_suffix, '.mat'], '-v7.3', 'labels');
     
 end
 
@@ -226,11 +232,13 @@ while 1
         
     elseif strcmp(pressed_key,'r')
         
-        prompt = 'To stop enter "yes": ';
+        prompt = 'To stop print "yes" end press "enter": ';
         s = input(prompt, 's');
         if strcmp(s, 'yes')
             fprintf('Breaked cycle.\n');
             break;
+        else
+            fprintf('Incorrect answer. Continuing cycle.\n');
         end
 
     end
