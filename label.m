@@ -1,27 +1,27 @@
-function [] = label( category, file_suffix)
+function [] = label( category_name, file_suffix)
 %LABEL Pick the frame and label positives and negatives for it
 
 path_prefix = '/net/hciserver03/storage/asanakoy/workspace/dataset_labeling/data/labels_';
 
 if exist('file_suffix', 'var') && ~isempty(file_suffix)
-    output_filename = [path_prefix, category, file_suffix, '.mat'];
+    output_filename = [path_prefix, category_name, file_suffix, '.mat'];
 end
 
 if ~exist('file_suffix', 'var') || isempty(file_suffix)
     fprintf('Generating random filename suffix...\n');
     file_suffix = sprintf('_%d', ceil(rand * 1000000));
-    output_filename = [path_prefix, category, file_suffix, '.mat'];
+    output_filename = [path_prefix, category_name, file_suffix, '.mat'];
     
     while exist(output_filename, 'file')
         file_suffix = sprintf('_%d', ceil(rand * 1000000));
-        output_filename = [path_prefix, category, file_suffix, '.mat'];
+        output_filename = [path_prefix, category_name, file_suffix, '.mat'];
     end
 end
 
 fprintf('Output file path: %s\n', output_filename);
 
-path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category,'.mat'];
-path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category,'/'];
+path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category_name,'.mat'];
+path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category_name,'/'];
 
 fprintf('Welcome to the labelling tool application.\nFirst you are going to choose the anchor, please press k if the anchor is suitable and other key otherwise.\n');
 load(path_sim);
@@ -113,7 +113,7 @@ for nframe = 1:50
     end
     disp('Iteration is over.');
     
-    save(output_filename, '-v7.3', 'labels');
+    save(output_filename, '-v7.3', 'labels', 'category_name');
     
 end
 
