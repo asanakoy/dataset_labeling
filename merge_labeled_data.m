@@ -41,6 +41,13 @@ merged_labels = labels(1);
 for j = 2:length(labels)
     
     index = find(arrayfun(@(x)(x.anchor == labels(j).anchor), merged_labels));
+    
+    if isempty(labels(j).positives.ids)
+        fprintf('pos: %d, neg:%d\n', length(labels(j).positives.ids), length(labels(j).negatives.ids));
+        fprintf('skipping unlabeled anchor: %d\n', labels(j).anchor);
+        continue;
+    end
+
     if isempty(index)
         merged_labels = [merged_labels labels(j)];
     else

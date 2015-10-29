@@ -23,8 +23,9 @@ fprintf('Output file path: %s\n', output_filename);
 path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category_name,'.mat'];
 path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category_name,'/'];
 
-fprintf('Welcome to the labelling tool application.\nFirst you are going to choose the anchor, please press k if the anchor is suitable and other key otherwise.\n');
+fprintf('Loading data... Wait please.\n');
 load(path_sim);
+fprintf('Welcome to the labelling tool application.\nFirst you are going to choose the anchor, please press k if the anchor is suitable and other key otherwise.\n');
 negatives_per_seq = 10;
 
 %#ok<*NODEF>

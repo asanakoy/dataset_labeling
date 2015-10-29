@@ -2,14 +2,13 @@ function [] = labels_demo(labels_filepath)
 %LABEL Summary of this function goes here
 %   Detailed explanation goes here
 
-category = 'long_jump';
-
-path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category,'.mat']
-path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category,'/'];
-
-fprintf('Welcome to the labelling tool application.\nFirst you are going to choose the anchor, please press k if the anchor is suitable and other key otherwise.');
-load(path_sim);
 load(labels_filepath);
+category_name
+path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category_name,'.mat']
+path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category_name,'/'];
+load(path_sim);
+
+% category_name = 'long_jump';
 
 %#ok<*NODEF>
 % image_names = image_names(:,3:end);
@@ -23,11 +22,16 @@ for nframe = 1:length(labels)
     
     figure(h);
     anchor_path = fullfile(path_images, image_names{anchor_id});
-    subplot(1,2,1);imshow(anchor_path); title('Anchor frame');
+    subplot(1,2,1);imshow(anchor_path); title(sprintf('Anchor frame %d', anchor_id));
     fprintf('a or s to move 1 frame backward or forward (respectively).\n');
    
     fprintf('Positives: %d; Negatives: %d\n', ...
         length(labels(nframe).positives.ids), length(labels(nframe).negatives.ids));
+    
+    if (length(labels(nframe).positives.ids) == 0)
+        fprintf('Empty label. Skipping\n');
+        continue;
+    end
     
     image_ids = [labels(nframe).positives.ids labels(nframe).negatives.ids];
     flipvals = [labels(nframe).positives.flipval labels(nframe).negatives.flipval];
