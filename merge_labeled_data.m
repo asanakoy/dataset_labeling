@@ -1,4 +1,4 @@
-function [] = merge_labeled_data( dir_path, filename_suffix )
+function [] = merge_labeled_data( dir_path, filename_suffix, category_name )
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -15,7 +15,17 @@ if ~exist('data_info', 'var')
     data_info = load(DatasetStructure.getDataInfoPath(dataset_path));
 end
 
-file_list = getFilesInDir(dir_path, '.*\.mat');
+labels_prefix = '';
+if exist('category_name', 'var')
+    labels_prefix = ['labels_' category_name '_'];
+end
+labels_prefix
+file_list = getFilesInDir(dir_path, [labels_prefix '.*\.mat']);
+
+if isempty(file_list)
+    fprintf('No matched files in the folder!');
+    return;
+end
 
 file = load(fullfile(dir_path, file_list{1}));
 category_name = file.category_name;
@@ -79,16 +89,4 @@ output_filename = ['labels_' category_name filename_suffix '.mat'];
 
 save(fullfile(labeling_dir_path, 'merged_data', output_filename), '-v7.3', ...
     'labels', 'category_name', 'category_offset', 'dataset_path');
-end
-
-function [category_offset] = get_category_offset(category_name, data_info)
-    category_id = find(ismember(data_info.categoryNames, category_name));
-    assert(~isempty(category_id), 'Incorrect category_name!');
-    category_offset = 0;
-    for i = 1:length(data_info.categoryLookupTable)
-        if (data_info.categoryLookupTable(i) == category_id)
-            category_offset = i - 1;
-            break;
-        end
-    end
 end
