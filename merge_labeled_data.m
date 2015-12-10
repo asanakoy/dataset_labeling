@@ -1,4 +1,4 @@
-function [] = merge_labeled_data( dir_path, filename_suffix, category_name )
+function [] = merge_labeled_data( dir_path, filename_suffix, category_name, data_info)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
