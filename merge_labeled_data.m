@@ -17,7 +17,7 @@ end
 
 labels_prefix = '';
 if exist('category_name', 'var')
-    labels_prefix = ['labels_' category_name '_'];
+    labels_prefix = ['labels_' category_name];
 end
 labels_prefix
 file_list = getFilesInDir(dir_path, [labels_prefix '.*\.mat']);
@@ -86,6 +86,10 @@ end
 
 labels = merged_labels;
 output_filename = ['labels_' category_name filename_suffix '.mat'];
+
+if ~exist(fullfile(labeling_dir_path, 'merged_data'), 'dir')
+    mkdir(fullfile(labeling_dir_path, 'merged_data'))
+end
 
 save(fullfile(labeling_dir_path, 'merged_data', output_filename), '-v7.3', ...
     'labels', 'category_name', 'category_offset', 'dataset_path');
