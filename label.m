@@ -103,7 +103,7 @@ for nframe = 1:50
     if (length(labels(nframe).negatives.ids) < MAX_N_NEGATIVES)
         
         neg_pool_size = max(length(perm_from_other_sequences) * 0.5, ...
-            min(lenght(perm_from_other_sequences), N_FRAMES_TO_CHECK_FROM_ONE_SIDE * 2));
+            min(length(perm_from_other_sequences), N_FRAMES_TO_CHECK_FROM_ONE_SIDE * 2));
         random_shuffle = randperm(neg_pool_size);
         
         neg_start = N_FRAMES_TO_CHECK_FROM_ONE_SIDE * 0.8;
@@ -175,7 +175,7 @@ while 1
     img = imread(image_path);
     flipval = anchor_flipval(frameId);
     if (flipval)
-        img = fliplr(img);
+        img = utils.fliplr(img);
     end
     subplot(1,2,2); imshow(img); title(sprintf('Frame %d of %d; Sim: %.3f', i, n, sim));
     figure(h_figure);
@@ -282,7 +282,8 @@ end
 %% Utility functions
 
 function [seq_name] = getSeqName(image_name)
-pos = regexp(image_name, '/I.*\.png');
+pos = strfind(image_name, '/');
+assert(length(pos) == 1);
 seq_name = image_name(1:pos-1);
 end
 
