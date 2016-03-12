@@ -1,7 +1,7 @@
 function [] = label( category_name, file_suffix)
 %LABEL Pick the frame and label positives and negatives for it
 
-path_prefix = '/net/hciserver03/storage/asanakoy/workspace/dataset_labeling/data/labels_';
+addpath(genpath('/net/hciserver03/storage/asanakoy/workspace/similarities'));
 
 if exist('file_suffix', 'var') && ~isempty(file_suffix)
     output_filename = [path_prefix, category_name, file_suffix, '.mat'];
@@ -88,6 +88,7 @@ for nframe = 1:50
         end
     end
     permutation = perm_from_other_sequences;
+    length(perm_from_other_sequences)
     
     n = min(N_FRAMES_TO_CHECK_FROM_ONE_SIDE, length(perm_from_other_sequences));
     
