@@ -2,9 +2,9 @@ function [] = merge_labeled_data()
 
 % Merge all data, each category separately from data_dir_path 
 
-data_dir_path = '/net/hciserver03/storage/asanakoy/workspace/dataset_labeling/merged_data_13.11.15';
+data_dir_path = '/net/hciserver03/storage/asanakoy/workspace/ucf_sports/dataset_labeling/to_merge';
 
-dataset_path = '~/workspace/OlympicSports';
+dataset_path = '~/workspace/ucf_sports';
 
 if ~exist('data_info', 'var')
     data_info = load(DatasetStructure.getDataInfoPath(dataset_path));

@@ -4,8 +4,8 @@ function [] = labels_demo(labels_filepath)
 
 load(labels_filepath);
 category_name
-path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category_name,'.mat']
-path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category_name,'/'];
+path_sim = ['/export/home/asanakoy/workspace/ucf_sports/sim_pedro_hog_for_labeling/sim_hog_pedro_',category_name,'.mat'];
+path_images = ['/export/home/asanakoy/workspace/ucf_sports/crops_227x227/',category_name,'/'];
 load(path_sim);
 
 % category_name = 'long_jump';

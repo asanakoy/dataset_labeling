@@ -2,6 +2,7 @@ function [] = label( category_name, file_suffix)
 %LABEL Pick the frame and label positives and negatives for it
 
 addpath(genpath('/net/hciserver03/storage/asanakoy/workspace/similarities'));
+path_prefix = '/net/hciserver03/storage/asanakoy/workspace/ucf_sports/dataset_labeling/data/labels_';
 
 if exist('file_suffix', 'var') && ~isempty(file_suffix)
     output_filename = [path_prefix, category_name, file_suffix, '.mat'];
@@ -20,8 +21,8 @@ end
 
 fprintf('Output file path: %s\n', output_filename);
 
-path_sim = ['/export/home/asanakoy/workspace/OlympicSports/sim/simMatrix_',category_name,'.mat'];
-path_images = ['/export/home/asanakoy/workspace/OlympicSports/crops/',category_name,'/'];
+path_sim = ['/export/home/asanakoy/workspace/ucf_sports/sim_pedro_hog_for_labeling/sim_hog_pedro_',category_name,'.mat'];
+path_images = ['/export/home/asanakoy/workspace/ucf_sports/crops_227x227/',category_name,'/'];
 
 fprintf('Loading data... Wait please.\n');
 load(path_sim);

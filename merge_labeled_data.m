@@ -6,11 +6,11 @@ if ~exist(dir_path, 'dir')
     error('Dir does not exist : %s\n', dir_path);
 end
 
-labeling_dir_path = '/net/hciserver03/storage/asanakoy/workspace/dataset_labeling';
+labeling_dir_path = '~/workspace/ucf_sports/dataset_labeling';
 % output_filename = 'long_jump_21.10.mat';
 % category_name = 'long_jump';
 
-dataset_path = '~/workspace/OlympicSports';
+dataset_path = '~/workspace/ucf_sports';
 if ~exist('data_info', 'var')
     data_info = load(DatasetStructure.getDataInfoPath(dataset_path));
 end
